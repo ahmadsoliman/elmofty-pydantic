@@ -2,7 +2,8 @@ from __future__ import annotations
 from typing import Literal, TypedDict
 import asyncio
 import os
-import nest_asyncio
+
+# import nest_asyncio
 
 
 import streamlit as st
@@ -153,5 +154,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    nest_asyncio.apply()
+    # nest_asyncio.apply()
     asyncio.run(main())
