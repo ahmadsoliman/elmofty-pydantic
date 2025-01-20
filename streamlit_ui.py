@@ -153,4 +153,8 @@ async def main():
 
 
 nest_asyncio.apply()
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+try:
+    predictions = loop.run_until_complete(main())
+except Exception as e:
+    st.error(f"An error occurred: {e}")
