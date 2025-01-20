@@ -35,13 +35,6 @@ load_dotenv()
 from vertexai.preview.generative_models import GenerativeModel
 
 
-llm = os.getenv("LLM_MODEL", "gemini-1.5-pro")
-gemini_model = GenerativeModel("gemini-1.5-pro")
-
-# Configure logfire to suppress warnings (optional)
-logfire.configure(send_to_logfire="never")
-
-
 class ChatMessage(TypedDict):
     """Format of messages sent to the browser/API."""
 
