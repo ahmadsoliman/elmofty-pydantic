@@ -23,6 +23,14 @@ model = GeminiModel(llm)
 
 logfire.configure(send_to_logfire="if-token-present")
 
+import streamlit as st
+from google.oauth2 import service_account
+
+# Load credentials from the secrets
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+
 
 @dataclass
 class PydanticAIDeps:
@@ -40,7 +48,7 @@ You are an expert Muslim Sheikh tasked with answering religious questions and pr
 - If you can't infer the answer from the context, be honest and state that no relevant fatwas were found.
 - Ensure that your answer is in the original language of the user's prompt.
 - Do not mention the tool name or ask the user for permission before any actions you take, just do it.
-- Include the sources of your answers at the end of each response by citing the full Q&As you referenced as is.
+- Add the sources of your answer at the end of the response by citing the full Q&As you used.
 """
 
 # You ALWAYS use the tool retrieve_relevant_questions_with_answers for each prompt to find relevant questions and answers that you can infer the answer from.
@@ -158,7 +166,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
         # Query VertexAI for relevant questions
         client_options = {"api_endpoint": os.getenv("API_ENDPOINT")}
         vector_search_client = aiplatform_v1.MatchServiceClient(
-            client_options=client_options
+            credentials=credentials, client_options=client_options
         )
 
         datapoint = aiplatform_v1.IndexDatapoint(feature_vector=query_embedding)
@@ -173,7 +181,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
             return_full_datapoint=False,
         )
         response = vector_search_client.find_neighbors(request)
-        print(response.nearest_neighbors[0].neighbors)
+        # print(response.nearest_neighbors[0].neighbors)
 
         if (
             not response.nearest_neighbors[0]
