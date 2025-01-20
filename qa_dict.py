@@ -14,7 +14,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
 # Replace with your bucket name and blob name
 bucket_name = "eslam-qa-netherlands"
 source_blob_name = "rendered_qa-mo3amalat.json"
-destination_file_name = "public/qa.json"
+destination_file_name = "qa.json"
 
 if not os.path.exists(destination_file_name):
     download_blob(bucket_name, source_blob_name, destination_file_name)
