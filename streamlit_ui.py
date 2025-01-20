@@ -19,15 +19,13 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    SystemPromptPart,
     UserPromptPart,
     TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    RetryPromptPart,
-    ModelMessagesTypeAdapter,
 )
+from pydantic_ai.usage import UsageLimits
+
 from pydantic_agent import pydantic_islam_agent, PydanticAIDeps, RAGToolTracker
+from google.oauth2 import service_account
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -35,6 +33,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from vertexai.preview.generative_models import GenerativeModel
+from google.cloud import aiplatform
+
+
+# Load credentials from the secrets
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+
+# Init AI Platform
+aiplatform.init(
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location="europe-west4",
+    credentials=credentials,
+)
 
 llm = os.getenv("LLM_MODEL", "gemini-1.5-pro")
 gemini_model = GenerativeModel("gemini-1.5-pro")
@@ -84,6 +96,7 @@ async def run_agent(user_input: str):
         user_input,
         deps=deps,
         message_history=st.session_state.messages[:-1],
+        usage_limits=UsageLimits(request_limit=3),
     )
     response = result.data.response
 

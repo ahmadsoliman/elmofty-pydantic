@@ -135,7 +135,7 @@ def get_embedding(text: str) -> List[float]:
         return response[0].values
     except Exception as e:
         print(f"Error getting embedding: {e}")
-        return [0] * 786  # Return zero vector on error
+        return [0] * 768  # Return zero vector on error
 
 
 @pydantic_islam_agent.tool
