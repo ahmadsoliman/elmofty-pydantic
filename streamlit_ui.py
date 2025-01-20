@@ -1,6 +1,6 @@
 from __future__ import annotations
-import asyncio
 from typing import Literal, TypedDict
+import asyncio
 import os
 import nest_asyncio
 
@@ -12,6 +12,7 @@ from arabic_support import support_arabic_text
 # Support Arabic text alignment in all components
 support_arabic_text(components=["input", "markdown", "textinput"])
 
+# from qa_dict import qa_dict
 
 # Import all the message part classes
 from pydantic_ai.messages import (
@@ -34,7 +35,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from vertexai.preview.generative_models import GenerativeModel
-
 
 llm = os.getenv("LLM_MODEL", "gemini-1.5-pro")
 gemini_model = GenerativeModel("gemini-1.5-pro")
@@ -119,6 +119,37 @@ async def main():
     st.write(
         "مرحبا بك في عالم الذكاء الاصطناعي. يمكنك أن تسألني عن رأي العلماء في أي سؤال يتعلق بالمعاملات المالية وما شابه وسأعمل أحسن ما بوسعي لأجد الإجابة في موسوعة الأسئلة والأجوبة لدي."
     )
+
+    # Initialize chat history in session state if not present
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Display all messages from the conversation so far
+    # Each message is either a ModelRequest or ModelResponse.
+    # We iterate over their parts to decide how to display them.
+    for msg in st.session_state.messages:
+        if isinstance(msg, ModelRequest) or isinstance(msg, ModelResponse):
+            for part in msg.parts:
+                display_message_part(part)
+
+    # Chat input for the user
+    user_input = st.chat_input("ماذا على بالك اليوم؟")
+
+    if user_input:
+        # We append a new request to the conversation explicitly
+        st.session_state.messages.append(
+            ModelRequest(parts=[UserPromptPart(content=user_input)])
+        )
+
+        # Display user prompt in the UI
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # Display the assistant's partial response while streaming
+        with st.chat_message("assistant"):
+            # Actually run the agent now, streaming the text
+            RAGToolTracker.reset()  # Reset the tracker for a new input
+            await run_agent(user_input)
 
 
 nest_asyncio.apply()
