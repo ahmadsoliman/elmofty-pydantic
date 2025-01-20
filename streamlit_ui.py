@@ -12,7 +12,7 @@ from arabic_support import support_arabic_text
 # Support Arabic text alignment in all components
 support_arabic_text(components=["input", "markdown", "textinput"])
 
-from qa_dict import qa_dict
+# from qa_dict import qa_dict
 
 # Import all the message part classes
 from pydantic_ai.messages import (
@@ -27,7 +27,7 @@ from pydantic_ai.messages import (
     RetryPromptPart,
     ModelMessagesTypeAdapter,
 )
-from pydantic_agent import pydantic_islam_expert, PydanticAIDeps
+from pydantic_agent import pydantic_islam_agent, PydanticAIDeps, RAGToolTracker
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -80,14 +80,15 @@ async def run_agent(user_input: str):
     deps = PydanticAIDeps()
 
     # Run the agent in a stream
-    result = await pydantic_islam_expert.run(
+    result = await pydantic_islam_agent.run(
         user_input,
         deps=deps,
-        # message_history=st.session_state.messages[:-1],
+        message_history=st.session_state.messages[:-1],
     )
+    response = result.data.response
 
     message_placeholder = st.empty()
-    message_placeholder.markdown(result.data)
+    message_placeholder.markdown(response)
 
     # We'll gather partial text to show incrementally
     # Render partial text as it arrives
@@ -110,9 +111,7 @@ async def run_agent(user_input: str):
     st.session_state.messages.extend(filtered_messages)
 
     # Add the final response to the messages
-    st.session_state.messages.append(
-        ModelResponse(parts=[TextPart(content=result.data)])
-    )
+    st.session_state.messages.append(ModelResponse(parts=[TextPart(content=response)]))
 
 
 async def main():
@@ -149,12 +148,14 @@ async def main():
         # Display the assistant's partial response while streaming
         with st.chat_message("assistant"):
             # Actually run the agent now, streaming the text
+            RAGToolTracker.reset()  # Reset the tracker for a new input
             await run_agent(user_input)
 
 
 nest_asyncio.apply()
-loop = asyncio.get_event_loop()
-try:
-    predictions = loop.run_until_complete(main())
-except Exception as e:
-    st.error(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        st.error(f"An error occurred: {e}")

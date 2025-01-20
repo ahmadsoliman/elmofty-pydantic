@@ -7,6 +7,7 @@ import os
 
 from qa_dict import qa_dict
 
+from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.gemini import GeminiModel
 from typing import List
@@ -32,18 +33,30 @@ class PydanticAIDeps:
 
 # , unless the prompt is a follow up question on the last prompt, then you can skip RAG.
 system_prompt = """
-You always use the tool retrieve_relevant_questions_with_answers for each prompt to find relevant questions and answers that you can infer the answer from.
+You are an expert Muslim Sheikh tasked with answering religious questions and providing fatwas.
 
-أنت شيخ مسلم خبير في الرد على الإستفسارات وإعطاء الفتاوى من خلال أداة البحث عن أسئلة مماثلة.
-لا تجيب على أسئلة أخرى خارج نطاق الدين الإسلامي وأحكامه، بخلاف وصف ما يمكنك القيام به.
-لا تسأل المستخدم قبل اتخاذ إجراء، قم به مباشرة.
-تأكد دائمًا من البحث عن أسئلة مشابهة لسؤال المستخدم باستخدام الأدوات المتاحة قبل الإجابة.
-استنتج الإجابة فقط من إجابات الأسئلة المشابهة وليس من معرفتك السابقة.
-وإذا لم تجد إجابة في الأسئلة المشابهة، قل للمستخدم أن ليس لديك إجابة قاطعة - كن صادقًا.
-تأكد من تضمين السؤال والجواب الأصلي كما هو الذي وجدت منه الإجابة في نهاية ردك.
-
-YOU MUST USE THE TOOL retrieve_relevant_questions_with_answers EVERY TIME TO FIND THE ANSWER.
+- First, call the `generate_context` tool to create a context string. Then, use that context to formulate the response.
+- Your responses should rely exclusively on the context and not on your own prior knowledge. 
+- If you can't infer the answer from the context, be honest and state that no relevant fatwas were found.
+- Ensure that your answer is in the original language of the user's prompt.
+- Do not mention the tool name or ask the user for permission before any actions you take, just do it.
+- Include the sources of your answers at the end of each response by citing the specific Q&As you referenced along with their IDs.
 """
+
+# You ALWAYS use the tool retrieve_relevant_questions_with_answers for each prompt to find relevant questions and answers that you can infer the answer from.
+# Don't mention the tool name in your answer.
+
+# أنت شيخ مسلم خبير في الرد على الإستفسارات وإعطاء الفتاوى من خلال أداة البحث عن أسئلة مماثلة.
+# لا تجيب على أسئلة أخرى خارج نطاق الدين الإسلامي وأحكامه، بخلاف وصف ما يمكنك القيام به.
+# لا تسأل المستخدم قبل اتخاذ إجراء، قم به مباشرة.
+# استنتج الإجابة فقط من إجابات الأسئلة المشابهة وليس من معرفتك السابقة.
+# وإذا لم تجد إجابة في الأسئلة المشابهة، قل للمستخدم أن ليس لديك إجابة قاطعة - كن صادقًا.
+# تأكد من تضمين السؤال والجواب الأصلي كما هو الذي وجدت منه الإجابة في نهاية ردك.
+
+# YOU MUST USE THE TOOL retrieve_relevant_questions_with_answers EVERY TIME TO FIND THE ANSWER.
+# ------------------------------------------------------------------------------------------
+# You ALWAYS use the tool retrieve_relevant_questions_with_answers for each prompt to find relevant questions and answers that you can infer the answer from.
+# Don't mention the tool name in your answer.
 # You are an expert Muslim Sheikh who answers questions and gives fatwas using the similar questions and answers as context.
 
 # Your only job is to assist with this and you don't answer other questions besides describing what you are able to do.
@@ -57,11 +70,61 @@ YOU MUST USE THE TOOL retrieve_relevant_questions_with_answers EVERY TIME TO FIN
 # Always let the user know if you didn't find the answer in the RAG Q&As - be honest.
 # Always answer using the user's prompt's original language.
 # Always make sure you look for similar questions to the user's prompt using the provided tools before answering the user's question.
+# YOU MUST USE THE TOOL retrieve_relevant_questions_with_answers EVERY TIME TO FIND THE ANSWER.
+
 # """
 
-pydantic_islam_expert = Agent(
-    model, system_prompt=system_prompt, deps_type=PydanticAIDeps, retries=2
+
+# Shared flag to track tool invocation
+class RAGToolTracker:
+    tool_used: bool = False
+
+    @classmethod
+    def reset(cls):
+        cls.tool_used = False
+
+    @classmethod
+    def set_used(cls):
+        cls.tool_used = True
+
+    @classmethod
+    def check(cls):
+        return cls.tool_used
+
+
+# Define the result type with validation
+class ValidatedResponse(BaseModel):
+    response: str = Field(..., description="The final response to the user.")
+    context_used: str = Field(
+        ..., description="The generated context string from the generate_context tool."
+    )
+
+    @model_validator(mode="before")
+    def ensure_tool_used(cls, values):
+        if not RAGToolTracker.check():
+            raise ValueError(
+                "The generate_context tool was not called before generating the response."
+            )
+        return values
+
+
+pydantic_islam_agent = Agent(
+    model,
+    system_prompt=system_prompt,
+    deps_type=PydanticAIDeps,
+    retries=2,
+    result_type=ValidatedResponse,
 )
+
+
+# # Define the agent's logic
+# @pydantic_islam_agent
+# async def respond_with_context(
+#     ctx: RunContext[PydanticAIDeps], user_input: str
+# ) -> ValidatedResponse:
+#     context = await ctx.call_tool("generate_context", user_input=user_input)
+#     response = f"Using the context: {context}, here's your answer."
+#     return ValidatedResponse(response=response, context_used=context)
 
 
 def get_embedding(text: str) -> List[float]:
@@ -75,12 +138,11 @@ def get_embedding(text: str) -> List[float]:
         return [0] * 786  # Return zero vector on error
 
 
-@pydantic_islam_expert.tool
-def retrieve_relevant_questions_with_answers(
-    ctx: RunContext[PydanticAIDeps], user_query: str
-) -> str:
+@pydantic_islam_agent.tool
+def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
     """
-    RAG tool: Retrieve relevant questions based on the query with RAG along with their answers.
+    generate_context tool
+    Retrieve relevant questions based on the query with RAG along with their answers.
 
     Args:
         ctx: The context including the Gemini Client
@@ -132,7 +194,8 @@ def retrieve_relevant_questions_with_answers(
                     f"({id})سؤال: {qa['question']}\n  الإجابة: {qa['answer']}"
                 )
 
-        # Join all chunks with a separator
+            # Join all chunks with a separator
+        RAGToolTracker.set_used()  # Mark the tool as used
         return "\n\n---\n\n".join(formatted_questions)
 
     except Exception as e:
