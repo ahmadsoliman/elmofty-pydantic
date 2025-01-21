@@ -1,6 +1,7 @@
 import json
 import os
 from google.cloud import storage
+from pydantic import BaseModel
 
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
@@ -21,4 +22,15 @@ if not os.path.exists(destination_file_name):
 
 with open(destination_file_name, "r", encoding="utf-8") as f:
     qa_data = json.load(f)
-qa_dict = {str(qa["id"]): qa for qa in qa_data}
+
+
+class QA(BaseModel):
+    id: str
+    question: str
+    answer: str
+
+
+qa_dict = {
+    str(qa["id"]): QA(id=str(qa["id"]), question=qa["question"], answer=qa["answer"])
+    for qa in qa_data
+}

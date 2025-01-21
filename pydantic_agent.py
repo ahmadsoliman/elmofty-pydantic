@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import logfire
 import os
 
-from qa_dict import qa_dict
+from qa_dict import QA, qa_dict
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
@@ -48,7 +48,7 @@ You are an expert Muslim Sheikh tasked with answering religious questions and pr
 - If you can't infer the answer from the context, be honest and state that no relevant fatwas were found.
 - Ensure that your answer is in the original language of the user's prompt.
 - Do not mention the tool name or ask the user for permission before any actions you take, just do it.
-- Add the sources of your answer at the end of the response by citing the full Q&As you used.
+- Return your answer to the user question and return a list of IDs of the questions you used as sources for your answer.
 """
 
 # You ALWAYS use the tool retrieve_relevant_questions_with_answers for each prompt to find relevant questions and answers that you can infer the answer from.
@@ -103,8 +103,13 @@ class RAGToolTracker:
 # Define the result type with validation
 class ValidatedResponse(BaseModel):
     response: str = Field(..., description="The final response to the user.")
-    context_used: str = Field(
-        ..., description="The generated context string from the generate_context tool."
+    context: str = Field(
+        ...,
+        description="The formatted string of similar questions and answers from the generate_context tool.",
+    )
+    source_questions_ids: List[str] = Field(
+        ...,
+        description="The IDs of the similar questions and answers you actually used from `context` to infer the answer from.",
     )
 
     @model_validator(mode="before")
@@ -123,16 +128,6 @@ pydantic_islam_agent = Agent(
     retries=2,
     result_type=ValidatedResponse,
 )
-
-
-# # Define the agent's logic
-# @pydantic_islam_agent
-# async def respond_with_context(
-#     ctx: RunContext[PydanticAIDeps], user_input: str
-# ) -> ValidatedResponse:
-#     context = await ctx.call_tool("generate_context", user_input=user_input)
-#     response = f"Using the context: {context}, here's your answer."
-#     return ValidatedResponse(response=response, context_used=context)
 
 
 def get_embedding(text: str) -> List[float]:
@@ -157,7 +152,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
         user_query: The user's question or query
 
     Returns:
-        A formatted string containing the top 5 most relevant questions and their answers
+        A formatted string of the top 5 most relevant questions, their IDs, and their answers
     """
     try:
         # Get the embedding for the query
@@ -194,12 +189,16 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
             for obj in response.nearest_neighbors[0].neighbors
         ]
 
+        RAGToolTracker.set_used()  # Mark the tool as used
+        # return the list of questions and answers from the qa_dict
+        # return [qa_dict.get(id) for id in questions_ids]
+
         formatted_questions = []
         for id in questions_ids:
             qa = qa_dict.get(id)
             if qa:
                 formatted_questions.append(
-                    f"({id})سؤال: {qa['question']}\n  الإجابة: {qa['answer']}"
+                    f"({id})سؤال: {qa.question}\n  الإجابة: {qa.answer}"
                 )
 
             # Join all chunks with a separator
@@ -208,7 +207,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
 
     except Exception as e:
         print(f"Error retrieving questions: {e}")
-        return f"Error retrieving questions: {str(e)}"
+        return []
 
 
 # @pydantic_islam_expert.tool

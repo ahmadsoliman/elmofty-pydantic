@@ -12,7 +12,7 @@ from arabic_support import support_arabic_text
 # Support Arabic text alignment in all components
 support_arabic_text(components=["input", "markdown", "textinput"])
 
-# from qa_dict import qa_dict
+from qa_dict import QA, qa_dict
 
 # Import all the message part classes
 from pydantic_ai.messages import (
@@ -96,12 +96,25 @@ async def run_agent(user_input: str):
         user_input,
         deps=deps,
         message_history=st.session_state.messages[:-1],
-        usage_limits=UsageLimits(request_limit=3),
+        usage_limits=UsageLimits(request_limit=4),
     )
     response = result.data.response
+    # similar_qas = result.data.context
+    source_questions_ids = result.data.source_questions_ids
 
     message_placeholder = st.empty()
     message_placeholder.markdown(response)
+
+    similar_qas = [
+        f"**سؤال([{qa_id}](https://islamqa.info/ar/answers/{qa_id}/)):** {qa_dict[qa_id].question.replace("\n", "\\\n")} \\\n \\\n**الإجابة:** {qa_dict[qa_id].answer.replace("\n", "\\\n")}"
+        for qa_id in source_questions_ids
+    ]
+    similar_qas_placeholder = st.empty()
+    similar_qas_placeholder.markdown(
+        # format the similar questions and answers
+        "#### الأسئلة المشابهة: \n"
+        + "\\\n \\\n".join(similar_qas),
+    )
 
     # We'll gather partial text to show incrementally
     # Render partial text as it arrives
