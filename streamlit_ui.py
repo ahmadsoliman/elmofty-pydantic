@@ -25,31 +25,11 @@ from pydantic_ai.messages import (
 from pydantic_ai.usage import UsageLimits
 
 from pydantic_agent import pydantic_islam_agent, PydanticAIDeps, RAGToolTracker
-from google.oauth2 import service_account
 
 # Load environment variables
 from dotenv import load_dotenv
 
 load_dotenv()
-
-from vertexai.preview.generative_models import GenerativeModel
-from google.cloud import aiplatform
-
-
-# Load credentials from the secrets
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"]
-)
-
-# Init AI Platform
-aiplatform.init(
-    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
-    location="europe-west4",
-    credentials=credentials,
-)
-
-llm = os.getenv("LLM_MODEL", "gemini-1.5-pro")
-gemini_model = GenerativeModel("gemini-1.5-pro")
 
 # Configure logfire to suppress warnings (optional)
 logfire.configure(send_to_logfire="never")
@@ -98,6 +78,7 @@ async def run_agent(user_input: str):
         message_history=st.session_state.messages[:-1],
         usage_limits=UsageLimits(request_limit=4),
     )
+
     response = result.data.response
     # similar_qas = result.data.context
     source_questions_ids = result.data.source_questions_ids
@@ -108,13 +89,15 @@ async def run_agent(user_input: str):
     similar_qas = [
         f"**سؤال([{qa_id}](https://islamqa.info/ar/answers/{qa_id}/)):** {qa_dict[qa_id].question.replace("\n", "\\\n")} \\\n \\\n**الإجابة:** {qa_dict[qa_id].answer.replace("\n", "\\\n")}"
         for qa_id in source_questions_ids
+        if qa_id in qa_dict
     ]
-    similar_qas_placeholder = st.empty()
-    similar_qas_placeholder.markdown(
-        # format the similar questions and answers
-        "#### الأسئلة المشابهة: \n"
-        + "\\\n \\\n".join(similar_qas),
-    )
+    if similar_qas and len(similar_qas) > 0:
+        similar_qas_placeholder = st.empty()
+        similar_qas_placeholder.markdown(
+            # format the similar questions and answers
+            "#### الأسئلة المشابهة: \n"
+            + "\\\n \\\n".join(similar_qas),
+        )
 
     # We'll gather partial text to show incrementally
     # Render partial text as it arrives
@@ -141,9 +124,9 @@ async def run_agent(user_input: str):
 
 
 async def main():
-    st.title("ChatSheikh")
+    st.title("IslamQA AI")
     st.write(
-        "مرحبا بك في عالم الذكاء الاصطناعي. يمكنك أن تسألني عن رأي العلماء في أي سؤال يتعلق بالمعاملات المالية وما شابه وسأعمل أحسن ما بوسعي لأجد الإجابة في موسوعة الأسئلة والأجوبة لدي."
+        "مرحبا بك في عالم الذكاء الاصطناعي. يمكنك أن تسألني عن رأي العلماء في أي سؤال وسأعمل أحسن ما بوسعي لأجد الإجابة في موسوعة الأسئلة والأجوبة لدي."
     )
 
     # Initialize chat history in session state if not present
