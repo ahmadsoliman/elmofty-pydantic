@@ -145,6 +145,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
         RAGToolTracker.set_used()  # Mark the tool as used
         # return the list of questions and answers from the qa_dict
         similar_qas = [qa_dict.get(id) for id in questions_ids if id in qa_dict]
+        # print(similar_qas)
         return similar_qas
 
         # formatted_questions = []

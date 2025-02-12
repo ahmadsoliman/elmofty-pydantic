@@ -1,27 +1,28 @@
-import json
 import os
-from google.cloud import storage
+from supabase import create_client, Client
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(url, key)
 
 
-def download_blob(bucket_name, source_blob_name, destination_file_name):
-    """Downloads a blob from the bucket."""
-    storage_client = storage.Client(project="el-mofty")
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(destination_file_name)
-
-
-# Replace with your bucket name and blob name
-bucket_name = "eslam-qa-netherlands"
-source_blob_name = "rendered_qa-mo3amalat.json"
-destination_file_name = "qa.json"
-
-if not os.path.exists(destination_file_name):
-    download_blob(bucket_name, source_blob_name, destination_file_name)
-
-with open(destination_file_name, "r", encoding="utf-8") as f:
-    qa_data = json.load(f)
+qa_data = []
+page = 0
+while True:
+    response = (
+        supabase.table("qas")
+        .select("*")
+        .range(page * 1000, (page + 1) * 1000 - 1)
+        .execute()
+    )
+    if not response.data:
+        break
+    qa_data.extend(response.data)
+    page += 1
 
 
 class QA(BaseModel):
