@@ -54,7 +54,11 @@ async def run_agent(user_input: str):
     source_questions_ids = result.data.source_questions_ids
 
     similar_qas = [
-        f"**سؤال([{qa_id}](https://islamqa.info/ar/answers/{qa_id}/)):** {qa_dict[qa_id].question.replace("\n", "\\\n")} \\\n \\\n**الإجابة:** {qa_dict[qa_id].answer.replace("\n", "\\\n")}"
+        "**سؤال([{0}](https://islamqa.info/ar/answers/{0}/)):** {1} \\\n\\\n**الإجابة:** {2}".format(
+            qa_id,
+            qa_dict[qa_id].question.replace("\n", "\\\n"),
+            qa_dict[qa_id].answer.replace("\n", "\\\n"),
+        )
         for qa_id in source_questions_ids
         if qa_id in qa_dict
     ]

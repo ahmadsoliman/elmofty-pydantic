@@ -2,7 +2,8 @@ from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
 from dotenv import load_dotenv
-import logfire
+
+# import logfire
 import os
 
 from qa_dict import QA, qa_dict
@@ -28,7 +29,7 @@ url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
-logfire.configure(send_to_logfire="if-token-present")
+# logfire.configure(send_to_logfire="if-token-present")
 
 
 @dataclass
