@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
-url: str = os.getenv("SUPABASE_URL")
-key: str = os.getenv("SUPABASE_KEY")
+url: str = os.getenv("SUPABASE_QA_URL")
+key: str = os.getenv("SUPABASE_QA_KEY")
 
 supabase: Client = create_client(url, key)
 

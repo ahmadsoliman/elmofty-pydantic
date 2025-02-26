@@ -80,7 +80,6 @@ async def run_agent(user_input: str):
     )
 
     response = result.data.response
-    # similar_qas = result.data.context
     source_questions_ids = result.data.source_questions_ids
 
     message_placeholder = st.empty()

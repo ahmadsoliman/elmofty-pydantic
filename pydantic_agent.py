@@ -3,33 +3,39 @@ from __future__ import annotations as _annotations
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
-# import logfire
 import os
 
 from qa_dict import QA, qa_dict
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.usage import UsageLimits
+
 from typing import List
 
-from openai import OpenAI
+import cohere
+
 from supabase import create_client, Client
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
+co = cohere.ClientV2()
+
+deepseek_model_name = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+deepseek_model = OpenAIModel(
+    deepseek_model_name,
+    base_url="https://api.deepseek.com",
+    api_key=os.environ.get("DEEPSEEK_API_KEY"),
 )
 
-llm_model = os.getenv("LLM_MODEL", "gpt-4-turbo")
-embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+embedding_model = os.getenv("EMBEDDING_MODEL", "embed-multilingual-v3.0")
 
-
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
+url = os.getenv("SUPABASE_VECTOR_URL")
+key = os.getenv("SUPABASE_VECTOR_KEY")
 supabase: Client = create_client(url, key)
 
-# logfire.configure(send_to_logfire="if-token-present")
+ISLAMQA_BASE_URL = "https://islamqa.info/ar/answers"
 
 
 @dataclass
@@ -41,46 +47,40 @@ class PydanticAIDeps:
 
 # , unless the prompt is a follow up question on the last prompt, then you can skip RAG.
 system_prompt = """
-You are an expert Muslim Sheikh tasked with answering religious questions and providing fatwas.
+**Role:**
+- You are an expert AI Chatbot embodying a knowledgeable Muslim Sheikh. Your sole responsibility is to answer religious questions and research fatwas. You should only respond to questions about religion or inquiries about yourself and your capabilities.
 
-- First, call the `generate_context` tool to get a list of similar quesions and answers to use as context. Then, use that context to formulate the response, unless the prompt is a follow-up question to the last prompt.
-- Your responses should rely exclusively on the context and not on your own prior knowledge. 
-- If you can't infer the answer from the context, be honest and state that no relevant fatwas were found.
-- Ensure that your answer is in the original language of the user's prompt.
-- Do not mention the tool name or ask the user for permission before any actions you take, just do it.
-- Return your answer to the user question and return a list of IDs of the questions you used as sources for your answer.
+**Process for Each User Prompt (unless the question is about you):**
+1. **Rewrite prompt**:
+   - Translate and Rewrite the prompt into simple standard arabic.
+
+2. **Fetch Context:**
+   - Use the `generate_context` tool with the rewritten prompt to get a list of similar quesions and answers to use as context.
+   - Treat this text as your exclusive context for answering the prompt.
+
+3. **Generate Your Answer:**
+   - Base your response entirely on the fetched context, without relying on any prior knowledge.
+
+4. **If Context is Insufficient:**
+   - If you cannot infer an answer from the provided context, clearly state that "no relevant fatwas were found" without listing any resources.
+
+5. **Output Requirements:**
+   - Provide your answer to the user’s question translated into the language of the user's original prompt.
+   - Include a list of the question IDs of the subset of questions you used to infer the answer (if any).
+
+**Additional Guidelines:**
+- Do not mention the tool names or ask for the user's permission before taking any actions.
+- Always perform the tool-based lookup for every prompt unless the question explicitly concerns you or your capabilities.
 """
 
-# **Role:**
-# - You are an expert AI Chatbot embodying a knowledgeable Muslim Sheikh. Your sole responsibility is to answer religious questions and research fatwas. You should only respond to questions about religion or inquiries about yourself and your capabilities.
+# You are an expert Muslim Sheikh tasked with answering religious questions and providing fatwas.
 
-# **Process for Each User Prompt (unless the question is about you):**
-# 0. **Rewrite prompt**:
-#    - Make sure the prompt is in Arabic language, otherwise translate it to Arabic then follow the rest of the steps.
-
-# 1. **Retrieve Similar Questions:**
-#    - Immediately obtain the IDs of the 5 questions most similar to the rewritten arabic prompt from the Questions vector store.
-
-# 2. **Fetch Context:**
-#    - Use the "Get questions and answers using their IDs" tool with the comma-separated list of retrieved IDs to get the full text of those questions.
-#    - Treat this text as your exclusive context for answering the prompt.
-
-# 3. **Generate Your Answer:**
-#    - Base your response entirely on the fetched context, without relying on any prior knowledge.
-
-# 4. **If Context is Insufficient:**
-#    - If you cannot infer an answer from the provided context, clearly state that "no relevant fatwas were found" without listing any resources.
-
-# 5. **Output Requirements:**
-#    - Provide your answer to the user’s question
-#    - Include a list of the question IDs of the subset of questions you used to infer the answer (if any).
-
-# 6. **Translate your Answer:**
-#    - Translate your answer to the language of this text "{{ $('Webhook').item.json.body.message.substring(0, 30) }}"
-
-# **Additional Guidelines:**
-# - Do not mention the tool names or ask for the user's permission before taking any actions.
-# - Always perform the tool-based lookup for every prompt unless the question explicitly concerns you or your capabilities.
+# - First, call the `generate_context` tool to get a list of similar quesions and answers to use as context. Then, use that context to formulate the response, unless the prompt is a follow-up question to the last prompt.
+# - Your responses should rely exclusively on the context and not on your own prior knowledge.
+# - If you can't infer the answer from the context, be honest and state that no relevant fatwas were found.
+# - Ensure that your answer is in the original language of the user's prompt.
+# - Do not mention the tool name or ask the user for permission before any actions you take, just do it.
+# - Return your answer to the user question and return a list of IDs of the questions you used as sources for your answer.
 
 
 # Shared flag to track tool invocation
@@ -103,13 +103,9 @@ class RAGToolTracker:
 # Define the result type with validation
 class ValidatedResponse(BaseModel):
     response: str = Field(..., description="The final response to the user.")
-    context: list[QA] = Field(
-        ...,
-        description="The similar questions and answers from the generate_context tool.",
-    )
     source_questions_ids: List[str] = Field(
         ...,
-        description="The IDs of the similar questions and answers you actually used from `context` to infer the answer from.",
+        description="The IDs of the similar questions you actually used from `context` to infer the answer from.",
     )
 
     @model_validator(mode="before")
@@ -122,7 +118,7 @@ class ValidatedResponse(BaseModel):
 
 
 pydantic_islam_agent = Agent(
-    model=llm_model,
+    deepseek_model,
     system_prompt=system_prompt,
     deps_type=PydanticAIDeps,
     retries=2,
@@ -134,14 +130,17 @@ def get_embedding(text: str) -> List[float]:
     """Get embedding vector from OpenAI."""
     try:
         # Generate embeddings
-        response = client.embeddings.create(
-            input=[text],
+        response = co.embed(
+            texts=[text],
             model=embedding_model,
+            input_type="search_query",
+            embedding_types=["float"],
         )
-        return response.data[0].embedding
+
+        return response.embeddings.float[0]
     except Exception as e:
         print(f"Error getting embedding: {e}")
-        return [0] * 1536  # Return zero vector on error
+        return [0] * 1024  # Return zero vector on error
 
 
 @pydantic_islam_agent.tool
@@ -164,34 +163,62 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
         # Search supabase vector database for similar questions
 
         response = supabase.rpc(
-            "match_documents", {"query_embedding": query_embedding, "match_count": 5}
+            "match_documents",
+            {
+                "query_embedding": query_embedding,
+                "match_count": 5,
+                "match_threshold": 0.64,
+            },
         ).execute()
-
+        # print(user_query)
+        # print(response)
         # print the responses first row
+        RAGToolTracker.set_used()  # Mark the tool as used
 
         if not response.data or not response.data[0]:
             return "No relevant questions found."
 
-        questions_ids = [obj["content"] for obj in response.data]
+        questions_ids = [obj["question_id"] for obj in response.data]
 
-        RAGToolTracker.set_used()  # Mark the tool as used
         # return the list of questions and answers from the qa_dict
         similar_qas = [qa_dict.get(id) for id in questions_ids if id in qa_dict]
         # print(similar_qas)
         return similar_qas
 
-        # formatted_questions = []
-        # for id in questions_ids:
-        #     qa = qa_dict.get(id)
-        #     if qa:
-        #         formatted_questions.append(
-        #             f"({id})سؤال: {qa.question}\n  الإجابة: {qa.answer}"
-        #         )
-
-        #     # Join all chunks with a separator
-        # RAGToolTracker.set_used()  # Mark the tool as used
-        # return "\n\n---\n\n".join(formatted_questions)
-
     except Exception as e:
+        RAGToolTracker.set_used()  # Mark the tool as used
         print(f"Error retrieving questions: {e}")
         return []
+
+
+async def run_agent(user_input: str):
+    """
+    Run the agent with streaming text for the user_input prompt,
+    while maintaining the entire conversation in `st.session_state.messages`.
+    """
+    # Prepare dependencies
+    deps = PydanticAIDeps()
+
+    # Run the agent in a stream
+    result = await pydantic_islam_agent.run(
+        user_input,
+        deps=deps,
+        # message_history=st.session_state.messages[:-1],
+        usage_limits=UsageLimits(request_limit=6),
+    )
+
+    response = result.data.response
+    source_questions_ids = result.data.source_questions_ids
+
+    message = response
+    if source_questions_ids and len(source_questions_ids) > 0:
+        message += "\n\nReferences/المصادر:\n" + "\n".join(
+            "[{0}/{1}]({0}/{1})".format(ISLAMQA_BASE_URL, id)
+            for id in source_questions_ids
+        )
+
+    return {
+        "response": response,
+        "source_questions_ids": source_questions_ids,
+        "message": message,
+    }
