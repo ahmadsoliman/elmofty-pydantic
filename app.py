@@ -1,10 +1,11 @@
 from flask import Flask, jsonify, request
 from pydantic_agent import run_agent
 from qa_dict import qa_dict
-import logfire
+
+# import logfire
 
 # Configure logfire to suppress warnings (optional)
-logfire.configure(send_to_logfire="never")
+# logfire.configure(send_to_logfire="never")
 
 app = Flask(__name__)
 

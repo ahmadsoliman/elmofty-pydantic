@@ -20,7 +20,7 @@ from supabase import create_client, Client
 
 load_dotenv()
 
-co = cohere.ClientV2()
+co = cohere.ClientV2(os.getenv("COHERE_API_KEY"), base_url="https://api.cohere.ai")
 
 deepseek_model_name = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 deepseek_model = OpenAIModel(
