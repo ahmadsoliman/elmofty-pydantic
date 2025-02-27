@@ -211,14 +211,19 @@ async def run_agent(user_input: str):
     source_questions_ids = result.data.source_questions_ids
 
     message = response
+    telegram_message = response
     if source_questions_ids and len(source_questions_ids) > 0:
         message += "\n\nReferences/المصادر:\n" + "\n".join(
             "[{0}/{1}]({0}/{1})".format(ISLAMQA_BASE_URL, id)
             for id in source_questions_ids
+        )
+        telegram_message += "\n\nالمصادر:\n" + "\n".join(
+            "{0}/{1}".format(ISLAMQA_BASE_URL, id) for id in source_questions_ids
         )
 
     return {
         "response": response,
         "source_questions_ids": source_questions_ids,
         "message": message,
+        "telegram_mesasge": telegram_message,
     }
