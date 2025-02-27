@@ -45,7 +45,7 @@ async def telegram():
             return "Initiated Conversation", 200
 
         loading_message = reply_loading(chat_id)["result"]
-        print(loading_message)
+
         result = await run_agent(user_input)
 
         delete_loading_message(chat_id, loading_message["message_id"])
