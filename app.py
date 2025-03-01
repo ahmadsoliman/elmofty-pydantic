@@ -1,89 +1,56 @@
-from flask import Flask, jsonify, request
-from dotenv import load_dotenv
-import os
+from flask import Flask, request, jsonify
+from pydantic import ValidationError
 
-if os.getenv("FLASK_ENV") != "testing":
+from api.middleware.error_handler import register_error_handlers
+from api.services.chat_service import ChatService
+from api.services.telegram_service import TelegramService
+from api.middleware.error_handler import APIError
+from config import settings
+
+from api.schemas.validation import (
+    ChatRequest,
+    TelegramRequest,
+    ReportRequest,
+)
+from dotenv import load_dotenv
+
+if settings.FLASK_ENV != "testing":
     load_dotenv()
 
-from api.pydantic_agent import run_agent
-from api.telegram_bot import (
-    send_reply,
-    reply_start,
-    reply_loading,
-    delete_loading_message,
-)
-
-# import logfire
-
-# Configure logfire to suppress warnings (optional)
-# logfire.configure(send_to_logfire="never")
-
 app = Flask(__name__)
+register_error_handlers(app)
 
 
-# {
-#     "message": "Why do we have to pray?",
-#     "first_name": "Ahmad",
-#     "last_name": "Soliman",
-#     "user_id": "412",
-#     "message_id": "124",
-#     "chat_id": "123"
-# }
-# IslamQA AI Chatbot API Endpoint for mobile APP
 @app.route("/api/chat", methods=["POST"])
 async def chat():
-    msg_request = request.get_json()
-    if not msg_request or "message" not in msg_request:
-        return jsonify({"error": "Missing message attribute"}), 422
-
-    user_input = msg_request["message"]
-    result = await run_agent(user_input)
-    return jsonify(result), 200
+    try:
+        msg_request = ChatRequest(**request.get_json())
+        print(msg_request)
+        result = await ChatService.process_chat_request(msg_request)
+        return jsonify(result), 200
+    except ValidationError as e:
+        raise APIError(str(e), status_code=422)
 
 
 # IslamQA AI Chatbot API Endpoint Webhook for telegram bot
 @app.route("/api/telegram", methods=["POST"])
 async def telegram():
-    msg_request = request.get_json() or {}
-
-    if "message" in msg_request:
-        message = msg_request.get("message", {})
-        user_input = message.get("text", "")
-        chat_id = message.get("chat", {}).get("id", None)
-
-        if not message or not chat_id:
-            return "Invalid request format", 400
-
-        is_bot = message.get("from", {}).get("is_bot", False)
-
-        if is_bot:
-            return "Bot message Ignored.", 200
-
-        if user_input == "/start":
-            reply_start(chat_id)
-            return "Initiated Conversation", 200
-
-        reply_loading_response = reply_loading(chat_id)
-        loading_message = reply_loading_response.get("result", {})
-
-        result = await run_agent(user_input)
-
-        delete_loading_message(chat_id, loading_message.get("message_id", -1))
-
-        send_reply(chat_id, result["telegram_mesasge"])
-
+    try:
+        msg_request = TelegramRequest(**request.get_json())
+        result = await TelegramService.process_telegram_request(msg_request)
         return jsonify(result), 200
+    except ValidationError as e:
+        raise APIError(str(e), status_code=422)
 
-    return "Ignored. Please send message and chat id.", 200
 
-
-# {
-#     message: string;
-#     issue: string;
-#     reasons: string[];
-# }
 @app.route("/api/report", methods=["POST"])
 def report():
+    try:
+        report_request = ReportRequest(**request.get_json())
+    except ValidationError as e:
+        raise APIError(str(e), status_code=422)
+
+    # Process the report request
     return "Reported", 200
 
 

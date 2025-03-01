@@ -10,32 +10,30 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.usage import UsageLimits
+from config import settings
 
 from typing import List
 
 import cohere
 
-import supabase
+co = cohere.ClientV2(settings.COHERE_API_KEY, base_url="https://api.cohere.ai")
 
-co = cohere.ClientV2(os.getenv("COHERE_API_KEY"), base_url="https://api.cohere.ai")
-
-deepseek_model_name = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+deepseek_model_name = settings.DEEPSEEK_MODEL
 deepseek_model = OpenAIModel(
     deepseek_model_name,
     base_url="https://api.deepseek.com",
-    api_key=os.environ.get("DEEPSEEK_API_KEY"),
+    api_key=settings.DEEPSEEK_API_KEY,
 )
 
-embedding_model = os.getenv("EMBEDDING_MODEL", "embed-multilingual-v3.0")
+embedding_model = settings.EMBEDDING_MODEL
 
-url = os.getenv("SUPABASE_VECTOR_URL")
-key = os.getenv("SUPABASE_VECTOR_KEY")
+url = settings.SUPABASE_VECTOR_URL
+key = settings.SUPABASE_VECTOR_KEY
 
-supabase_client: supabase.Client = None
-try:
-    supabase_client = supabase.create_client(url, key)
-except:
-    pass
+from api.db import get_db
+
+# Replace existing supabase_client initialization with:
+supabase_client = get_db()
 
 ISLAMQA_BASE_URL = "https://islamqa.info/ar/answers"
 

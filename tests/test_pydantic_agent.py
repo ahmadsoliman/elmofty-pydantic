@@ -14,6 +14,14 @@ def anyio_backend():
     return "asyncio"
 
 
+@pytest.fixture
+def mock_redis():
+    with patch("redis.Redis") as mock:
+        mock_instance = MagicMock()
+        mock.return_value = mock_instance
+        yield mock_instance
+
+
 @patch(
     "api.pydantic_agent.cohere.ClientV2.embed",
     return_value=MagicMock(embeddings=MagicMock(float=[[0.1] * 1024])),

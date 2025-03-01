@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 import json
 from flask.testing import FlaskClient
+import fakeredis
+import redis
 
 from app import app
 from api.pydantic_agent import pydantic_islam_agent, RAGToolTracker, ValidatedResponse
@@ -12,6 +14,15 @@ client = app.test_client()
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+
+@pytest.fixture(autouse=True)
+def mock_redis(monkeypatch):
+    # Create a FakeRedis instance
+    fake_redis = fakeredis.FakeRedis()
+
+    # Patch redis.Redis to return the FakeRedis instance
+    monkeypatch.setattr(redis, "Redis", lambda *args, **kwargs: fake_redis)
 
 
 def test_chat_endpoint_valid_request():
@@ -60,7 +71,7 @@ def test_telegram_endpoint_start_command():
     }
     response = client.post("/api/telegram", json=payload)
     assert response.status_code == 200
-    assert response.text == "Initiated Conversation"
+    assert response.get_json()["response"] == "Initiated Conversation"
 
 
 def test_telegram_endpoint_bot_message():
@@ -74,15 +85,14 @@ def test_telegram_endpoint_bot_message():
     }
     response = client.post("/api/telegram", json=payload)
     assert response.status_code == 200
-    assert response.text == "Bot message Ignored."
+    assert response.get_json()["response"] == "Bot message Ignored."
 
 
 def test_telegram_endpoint_invalid_structure():
     # Test invalid message structure
     payload = {"invalid": "structure"}
     response = client.post("/api/telegram", json=payload)
-    assert response.status_code == 200
-    assert response.text == "Ignored. Please send message and chat id."
+    assert response.status_code == 422
 
 
 @patch("api.telegram_bot.requests.post")

@@ -1,9 +1,13 @@
-import os
-import supabase
+import logging
 from pydantic import BaseModel
+import supabase
 
-url: str = os.getenv("SUPABASE_QA_URL")
-key: str = os.getenv("SUPABASE_QA_KEY")
+from config import settings
+
+logger = logging.getLogger(__name__)
+
+url: str = settings.SUPABASE_QA_URL
+key: str = settings.SUPABASE_QA_KEY
 
 
 class QA(BaseModel):
@@ -17,8 +21,7 @@ _qa_dict = {}
 
 def get_qa_dict():
     global _qa_dict
-    if not _qa_dict and os.getenv("FLASK_ENV") != "testing":
-        supabase_client: supabase.Client = None
+    if not _qa_dict and settings.FLASK_ENV != "testing":
         try:
             supabase_client = supabase.create_client(url, key)
 
@@ -36,13 +39,15 @@ def get_qa_dict():
                 qa_data.extend(response.data)
                 page += 1
 
+                # break  # TODO: REMOVE
+
             _qa_dict = {
                 str(qa["id"]): QA(
                     id=str(qa["id"]), question=qa["question"], answer=qa["answer"]
                 )
                 for qa in qa_data
             }
-        except:
+        except Exception as e:
+            logger.error(f"Error loading QA dictionary: {e}")
             return {}
-
     return _qa_dict

@@ -10,6 +10,14 @@ from unittest.mock import patch, MagicMock
 import requests
 
 
+@pytest.fixture
+def mock_redis():
+    with patch("redis.Redis") as mock:
+        mock_instance = MagicMock()
+        mock.return_value = mock_instance
+        yield mock_instance
+
+
 @patch("api.telegram_bot.requests.post")
 def test_send_reply_success(mock_requests):
     # Test successful message sending
