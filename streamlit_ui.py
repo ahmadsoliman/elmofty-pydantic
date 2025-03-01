@@ -12,7 +12,9 @@ from arabic_support import support_arabic_text
 # Support Arabic text alignment in all components
 support_arabic_text(components=["input", "markdown", "textinput"])
 
-from qa_dict import QA, qa_dict
+from api.qa_dict import QA, get_qa_dict
+
+qa_dict = get_qa_dict()
 
 # Import all the message part classes
 from pydantic_ai.messages import (
@@ -24,7 +26,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.usage import UsageLimits
 
-from pydantic_agent import pydantic_islam_agent, PydanticAIDeps, RAGToolTracker
+from api import pydantic_islam_agent, PydanticAIDeps, RAGToolTracker
 
 # Load environment variables
 from dotenv import load_dotenv

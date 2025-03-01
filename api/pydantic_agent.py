@@ -1,11 +1,10 @@
 from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
-from dotenv import load_dotenv
 
 import os
 
-from qa_dict import QA, qa_dict
+from api.qa_dict import QA, get_qa_dict
 
 from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
@@ -16,9 +15,7 @@ from typing import List
 
 import cohere
 
-from supabase import create_client, Client
-
-load_dotenv()
+import supabase
 
 co = cohere.ClientV2(os.getenv("COHERE_API_KEY"), base_url="https://api.cohere.ai")
 
@@ -33,9 +30,16 @@ embedding_model = os.getenv("EMBEDDING_MODEL", "embed-multilingual-v3.0")
 
 url = os.getenv("SUPABASE_VECTOR_URL")
 key = os.getenv("SUPABASE_VECTOR_KEY")
-supabase: Client = create_client(url, key)
+
+supabase_client: supabase.Client = None
+try:
+    supabase_client = supabase.create_client(url, key)
+except:
+    pass
 
 ISLAMQA_BASE_URL = "https://islamqa.info/ar/answers"
+
+qa_dict = get_qa_dict()
 
 
 @dataclass
@@ -144,7 +148,7 @@ def get_embedding(text: str) -> List[float]:
 
 
 @pydantic_islam_agent.tool
-def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
+def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> list[QA]:
     """
     generate_context tool
     Retrieve relevant questions based on the query with RAG along with their answers.
@@ -162,21 +166,23 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> str:
 
         # Search supabase vector database for similar questions
 
-        response = supabase.rpc(
-            "match_documents",
-            {
-                "query_embedding": query_embedding,
-                "match_count": 5,
-                "match_threshold": 0.64,
-            },
-        ).execute()
+        if supabase_client:
+            response = supabase_client.rpc(
+                "match_documents",
+                {
+                    "query_embedding": query_embedding,
+                    "match_count": 5,
+                    "match_threshold": 0.64,
+                },
+            ).execute()
+
         # print(user_query)
         # print(response)
         # print the responses first row
         RAGToolTracker.set_used()  # Mark the tool as used
 
-        if not response.data or not response.data[0]:
-            return "No relevant questions found."
+        if not response or not response.data or not response.data[0]:
+            return []
 
         questions_ids = [obj["question_id"] for obj in response.data]
 

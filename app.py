@@ -1,6 +1,17 @@
 from flask import Flask, jsonify, request
-from pydantic_agent import run_agent
-from telegram_bot import send_reply, reply_start, reply_loading, delete_loading_message
+from dotenv import load_dotenv
+import os
+
+if os.getenv("FLASK_ENV") != "testing":
+    load_dotenv()
+
+from api.pydantic_agent import run_agent
+from api.telegram_bot import (
+    send_reply,
+    reply_start,
+    reply_loading,
+    delete_loading_message,
+)
 
 # import logfire
 
@@ -22,6 +33,9 @@ app = Flask(__name__)
 @app.route("/api/chat", methods=["POST"])
 async def chat():
     msg_request = request.get_json()
+    if not msg_request or "message" not in msg_request:
+        return jsonify({"error": "Missing message attribute"}), 422
+
     user_input = msg_request["message"]
     result = await run_agent(user_input)
     return jsonify(result), 200
@@ -30,12 +44,17 @@ async def chat():
 # IslamQA AI Chatbot API Endpoint Webhook for telegram bot
 @app.route("/api/telegram", methods=["POST"])
 async def telegram():
-    msg_request = request.get_json()
+    msg_request = request.get_json() or {}
 
     if "message" in msg_request:
-        user_input = msg_request["message"]["text"]
-        chat_id = msg_request["message"]["chat"]["id"]
-        is_bot = msg_request["message"]["from"]["is_bot"]
+        message = msg_request.get("message", {})
+        user_input = message.get("text", "")
+        chat_id = message.get("chat", {}).get("id", None)
+
+        if not message or not chat_id:
+            return "Invalid request format", 400
+
+        is_bot = message.get("from", {}).get("is_bot", False)
 
         if is_bot:
             return "Bot message Ignored.", 200
@@ -44,11 +63,12 @@ async def telegram():
             reply_start(chat_id)
             return "Initiated Conversation", 200
 
-        loading_message = reply_loading(chat_id)["result"]
+        reply_loading_response = reply_loading(chat_id)
+        loading_message = reply_loading_response.get("result", {})
 
         result = await run_agent(user_input)
 
-        delete_loading_message(chat_id, loading_message["message_id"])
+        delete_loading_message(chat_id, loading_message.get("message_id", -1))
 
         send_reply(chat_id, result["telegram_mesasge"])
 
