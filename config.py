@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = Field(...)
     REDIS_HOST: str = Field(...)
     REDIS_PORT: str = Field(...)
+    GOOGLE_APPLICATION_CREDENTIALS: str = Field(...)
+    ANDROID_PACKAGE_NAME: str = Field(...)
 
     class Config:
         env_file = ".env"

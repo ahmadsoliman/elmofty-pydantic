@@ -46,3 +46,17 @@ class HealthCheckResponse(BaseModel):
     status: str
     database: bool
     external_services: dict
+
+
+from uuid import UUID
+
+class NonceRequest(BaseModel):
+    length: Optional[int] = Field(None, ge=16, le=128)
+    prefix: Optional[str] = Field(None, max_length=32)
+
+    @field_validator("prefix")
+    def sanitize_prefix(cls, value):
+        if value:
+            return bleach.clean(value, strip=True)
+        return value
+
