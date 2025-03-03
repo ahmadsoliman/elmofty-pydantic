@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     COHERE_API_KEY: str = Field(...)
     EMBEDDING_MODEL: str = Field(...)
     TELEGRAM_BOT_TOKEN: str = Field(...)
+    TELEGRAM_SECRET_TOKEN: str = Field(...)
     DEEPSEEK_API_KEY: str = Field(...)
     DEEPSEEK_MODEL: str = Field(...)
     REDIS_HOST: str = Field(...)

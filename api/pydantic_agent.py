@@ -58,6 +58,7 @@ system_prompt = """
 
 2. **Fetch Context:**
    - Use the `generate_context` tool with the rewritten prompt to get a list of similar quesions and answers to use as context.
+   - If the tool return an empty list, then there are no similar questions. Move on to the next step.
 
 3. **Generate Your Answer:**
    - If the `generate_context` tool returned an empty list, answer using your knowledge but add a disclaimer that no similar fatwas were found and this is your best guess.

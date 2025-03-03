@@ -9,8 +9,9 @@ from api.services.chat_service import ChatService
 from api.services.telegram_service import TelegramService
 from api.middleware.error_handler import APIError
 from api.cache.redis_manager import get_redis
-from api.services.play_integrity_service import verify_online
+from api.middleware.play_integrity import verify_online
 from api.logging_config import configure_logging
+from api.middleware.request_logger import log_requests
 from config import settings
 
 from api.schemas.validation import (
@@ -29,6 +30,7 @@ app = Flask(__name__)
 register_error_handlers(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 configure_logging()
+log_requests(app)
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -36,13 +38,15 @@ async def chat():
     try:
         data = request.get_json()
 
-        if "integrity_token" in data:
-            passedIntegrity = verify_online(data.get("integrity_token"))
+        if settings.FLASK_ENV != "testing":
+            passedIntegrity = False
+            if "integrity_token" in data:
+                passedIntegrity = verify_online(data.get("integrity_token"))
 
-        if not passedIntegrity:
-            raise APIError(
-                "Integrity token isn't provided or is invalid", status_code=403
-            )
+            if not passedIntegrity:
+                raise APIError(
+                    "Integrity token isn't provided or is invalid", status_code=403
+                )
 
         msg_request = ChatRequest(**data)
         result = await ChatService.process_chat_request(msg_request)
@@ -56,13 +60,14 @@ def report():
     try:
         data = request.get_json()
 
-        if "integrity_token" in data:
-            passedIntegrity = verify_online(data.get("integrity_token"))
+        if settings.FLASK_ENV != "testing":
+            if "integrity_token" in data:
+                passedIntegrity = verify_online(data.get("integrity_token"))
 
-        if not passedIntegrity:
-            raise APIError(
-                "Integrity token isn't provided or is invalid", status_code=403
-            )
+            if not passedIntegrity:
+                raise APIError(
+                    "Integrity token isn't provided or is invalid", status_code=403
+                )
 
         report_request = ReportRequest(**data)
         # save in redis and implement an endpoint to get all reports
@@ -94,10 +99,22 @@ async def generate_nonce():
         raise APIError(str(e), status_code=422)
 
 
+from api.middleware.telegram_security import (
+    validate_telegram_ip,
+    validate_telegram_secret,
+)
+
+
 # IslamQA AI Chatbot API Endpoint Webhook for telegram bot
 @app.route("/api/telegram", methods=["POST"])
 async def telegram():
     try:
+        # Validate request security
+        if settings.FLASK_ENV != "testing":
+            validate_telegram_ip()
+            validate_telegram_secret()
+
+        # Process request
         msg_request = TelegramRequest(**request.get_json())
         result = await TelegramService.process_telegram_request(msg_request)
         return jsonify(result), 200
