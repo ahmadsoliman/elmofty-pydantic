@@ -51,21 +51,20 @@ async def chat():
         raise APIError(str(e), status_code=422)
 
 
-# IslamQA AI Chatbot API Endpoint Webhook for telegram bot
-@app.route("/api/telegram", methods=["POST"])
-async def telegram():
-    try:
-        msg_request = TelegramRequest(**request.get_json())
-        result = await TelegramService.process_telegram_request(msg_request)
-        return jsonify(result), 200
-    except ValidationError as e:
-        raise APIError(str(e), status_code=422)
-
-
 @app.route("/api/report", methods=["POST"])
 def report():
     try:
-        report_request = ReportRequest(**request.get_json())
+        data = request.get_json()
+
+        if "integrity_token" in data:
+            passedIntegrity = verify_online(data.get("integrity_token"))
+
+        if not passedIntegrity:
+            raise APIError(
+                "Integrity token isn't provided or is invalid", status_code=403
+            )
+
+        report_request = ReportRequest(**data)
         # save in redis and implement an endpoint to get all reports
     except ValidationError as e:
         raise APIError(str(e), status_code=422)
@@ -88,9 +87,20 @@ async def generate_nonce():
 
         # Store nonce in Redis
         redis = get_redis()
-        redis.set(nonce, "1", ex=300)  # Store for 1 hour
+        redis.set(nonce, "1", ex=300)  # Store for 5 mins
 
         return jsonify({"nonce": nonce}), 200
+    except ValidationError as e:
+        raise APIError(str(e), status_code=422)
+
+
+# IslamQA AI Chatbot API Endpoint Webhook for telegram bot
+@app.route("/api/telegram", methods=["POST"])
+async def telegram():
+    try:
+        msg_request = TelegramRequest(**request.get_json())
+        result = await TelegramService.process_telegram_request(msg_request)
+        return jsonify(result), 200
     except ValidationError as e:
         raise APIError(str(e), status_code=422)
 
