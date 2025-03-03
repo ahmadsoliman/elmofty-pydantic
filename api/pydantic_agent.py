@@ -58,15 +58,12 @@ system_prompt = """
 
 2. **Fetch Context:**
    - Use the `generate_context` tool with the rewritten prompt to get a list of similar quesions and answers to use as context.
-   - Treat this text as your exclusive context for answering the prompt.
 
 3. **Generate Your Answer:**
-   - Base your response entirely on the fetched context, without relying on any prior knowledge.
+   - If the `generate_context` tool returned an empty list, answer using your knowledge but add a disclaimer that no similar fatwas were found and this is your best guess.
+   - Otherwise, Base your response entirely on the fetched context, without relying on any prior knowledge.
 
-4. **If Context is Insufficient:**
-   - If you cannot infer an answer from the provided context, clearly state that "no relevant fatwas were found" without listing any resources.
-
-5. **Output Requirements:**
+4. **Output Requirements:**
    - Provide your answer to the user’s question translated into the language of the user's original prompt.
    - Include a list of the question IDs of the subset of questions you used to infer the answer (if any).
 
@@ -156,7 +153,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> list[Q
         user_query: The user's question or query
 
     Returns:
-        A formatted string of the top 5 most relevant questions, their IDs, and their answers
+        A formatted string of the most relevant questions, their IDs, and their answers
     """
     try:
         # Get the embedding for the query
@@ -174,9 +171,6 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> list[Q
                 },
             ).execute()
 
-        # print(user_query)
-        # print(response)
-        # print the responses first row
         RAGToolTracker.set_used()  # Mark the tool as used
 
         if not response or not response.data or not response.data[0]:

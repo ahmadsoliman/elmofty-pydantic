@@ -27,6 +27,7 @@ def get_qa_dict():
 
             qa_data = []
             page = 0
+
             while True:
                 response = (
                     supabase_client.table("qas")
@@ -41,6 +42,9 @@ def get_qa_dict():
 
                 # break  # TODO: REMOVE
 
+            logger.debug(
+                "Loaded " + str(len(qa_data)) + " all IslamQA questions and answers."
+            )
             _qa_dict = {
                 str(qa["id"]): QA(
                     id=str(qa["id"]), question=qa["question"], answer=qa["answer"]

@@ -22,6 +22,6 @@ def get_redis():
 
 def check_and_delete_nonce(nonce: str) -> bool:
     redis = get_redis()
-    if redis.delete(nonce):
+    if nonce and redis.delete(nonce):
         return True
     return False
