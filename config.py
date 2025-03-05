@@ -5,20 +5,20 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     FLASK_ENV: str = Field(default="development")
     PORT: int = Field(default=8080)
-    SUPABASE_QA_URL: str = Field(...)
+    SUPABASE_QA_URL: str = Field(default="https://suujktweayfbbuwmcxai.supabase.co")
     SUPABASE_QA_KEY: str = Field(...)
-    SUPABASE_VECTOR_URL: str = Field(...)
+    SUPABASE_VECTOR_URL: str = Field(default="https://doazhgawytnjdwqtirra.supabase.co")
     SUPABASE_VECTOR_KEY: str = Field(...)
     COHERE_API_KEY: str = Field(...)
-    EMBEDDING_MODEL: str = Field(...)
+    EMBEDDING_MODEL: str = Field(default="embed-multilingual-v3.0")
     TELEGRAM_BOT_TOKEN: str = Field(...)
     TELEGRAM_SECRET_TOKEN: str = Field(...)
     DEEPSEEK_API_KEY: str = Field(...)
-    DEEPSEEK_MODEL: str = Field(...)
-    REDIS_HOST: str = Field(...)
-    REDIS_PORT: str = Field(...)
-    GOOGLE_APPLICATION_CREDENTIALS: str = Field(...)
-    ANDROID_PACKAGE_NAME: str = Field(...)
+    DEEPSEEK_MODEL: str = Field("deepseek-chat")
+    REDIS_HOST: str = Field("127.0.0.1")
+    REDIS_PORT: str = Field("6379")
+    GOOGLE_APPLICATION_CREDENTIALS: str = Field("gcp-service-account.json")
+    ANDROID_PACKAGE_NAME: str = Field(default="com.anonymous.IslamQA")
 
     class Config:
         env_file = ".env"

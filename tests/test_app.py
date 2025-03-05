@@ -5,7 +5,7 @@ from flask.testing import FlaskClient
 import fakeredis
 import redis
 
-from app import app
+from main import app
 from api.pydantic_agent import pydantic_islam_agent, RAGToolTracker, ValidatedResponse
 
 client = app.test_client()
