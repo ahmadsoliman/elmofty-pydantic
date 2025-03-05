@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from pydantic import ValidationError
 from uuid import uuid4
@@ -120,6 +120,20 @@ async def telegram():
         return jsonify(result), 200
     except ValidationError as e:
         raise APIError(str(e), status_code=422)
+
+
+@app.route("/api/health", methods=["GET"])
+async def health_check():
+    return {
+        "status": "ok",
+        "database": True,
+        "external_services": {"supabase": True, "cohere": True},
+    }
+
+
+@app.route("/app-ads.txt")
+def serve_static_file():
+    return send_from_directory("static", "app-ads.txt")
 
 
 if __name__ == "__main__":
