@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     FLASK_ENV: str = Field(default="development")
+    PORT: int = Field(default=8080)
     SUPABASE_QA_URL: str = Field(...)
     SUPABASE_QA_KEY: str = Field(...)
     SUPABASE_VECTOR_URL: str = Field(...)
