@@ -14,10 +14,12 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = Field(...)
     TELEGRAM_SECRET_TOKEN: str = Field(...)
     DEEPSEEK_API_KEY: str = Field(...)
-    DEEPSEEK_MODEL: str = Field("deepseek-chat")
-    REDIS_HOST: str = Field("127.0.0.1")
-    REDIS_PORT: str = Field("6379")
-    GOOGLE_APPLICATION_CREDENTIALS: str = Field("gcp-service-account.json")
+    DEEPSEEK_MODEL: str = Field(default="deepseek-chat")
+    REDIS_HOST: str = Field(default="127.0.0.1")
+    REDIS_PORT: str = Field(default="6379")
+    REDIS_USER: str = Field(default="default")
+    REDIS_PASSWORD: str = Field()
+    GOOGLE_APPLICATION_CREDENTIALS: str = Field(default="gcp-service-account.json")
     ANDROID_PACKAGE_NAME: str = Field(default="com.anonymous.IslamQA")
 
     class Config:
