@@ -6,7 +6,6 @@ class RedisManager:
     _instance = None
 
     def __new__(cls):
-        print("DB", settings.REDIS_HOST)
         if cls._instance is None:
             cls._instance = redis.Redis(
                 host=settings.REDIS_HOST,
