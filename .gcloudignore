@@ -1,0 +1,12 @@
+#!include:.gitignore
+
+.deccontainer/
+.plandex/
+
+tests/
+
+.env
+.env.test
+old-requirements.txt
+README.md
+streamlit_ui.py

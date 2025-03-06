@@ -177,3 +177,5 @@ cython_debug/
 
 #google gcp creds
 gcp-service-account.json
+
+dump.rdb
