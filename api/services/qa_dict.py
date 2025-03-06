@@ -1,4 +1,4 @@
-import logging
+import structlog
 from pydantic import BaseModel
 import supabase
 import json
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 url: str = settings.SUPABASE_QA_URL
 key: str = settings.SUPABASE_QA_KEY

@@ -25,6 +25,7 @@ INITIAL_MESSAGE = """مرحباً بك! أنا شيخ مسلم متخصص في �
 """
 
 LOADING_MESSAGE = "جاري البحث عن إجابة..."
+ERROR_MESSAGE = "عذرا لم أتمكن من الإجابة حاليا،  برجاء المحاولة لاحقا."
 
 
 def reply_start(chat_id):
@@ -33,6 +34,10 @@ def reply_start(chat_id):
 
 def reply_loading(chat_id):
     return send_reply(chat_id, LOADING_MESSAGE)
+
+
+def reply_error(chat_id):
+    return send_reply(chat_id, ERROR_MESSAGE)
 
 
 def delete_loading_message(chat_id, message_id):

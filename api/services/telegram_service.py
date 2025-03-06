@@ -8,6 +8,7 @@ from api.telegram_bot import (
     reply_start,
     delete_loading_message,
     send_reply,
+    reply_error,
 )
 
 
@@ -31,10 +32,17 @@ class TelegramService:
         reply_loading_response = reply_loading(chat_id)
         loading_message = reply_loading_response.get("result", {})
 
-        result = await run_agent(user_input)
+        result = None
+        try:
+            result = await run_agent(user_input)
+        except Exception as e:
+            pass
 
-        delete_loading_message(chat_id, loading_message.get("message_id", -1))
+        await delete_loading_message(chat_id, loading_message.get("message_id", -1))
 
-        send_reply(chat_id, result["telegram_mesasge"])
+        if result:
+            send_reply(chat_id, result["telegram_mesasge"])
+        else:
+            reply_error(chat_id)
 
         return result

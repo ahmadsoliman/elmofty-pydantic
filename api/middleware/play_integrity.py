@@ -1,9 +1,9 @@
 from play_integrity import Attestation
-import logging
+import structlog
 from config import settings
 from api.cache.redis_manager import check_and_delete_nonce
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 def verify_online(integrity_token):

@@ -162,8 +162,8 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> list[Q
                 "match_documents",
                 {
                     "query_embedding": query_embedding,
-                    "match_count": 5,
-                    "match_threshold": 0.64,
+                    "match_count": settings.VECTOR_MATCH_COUNT,
+                    "match_threshold": settings.VECTOR_MATCH_THRESHOLD,
                 },
             ).execute()
 
