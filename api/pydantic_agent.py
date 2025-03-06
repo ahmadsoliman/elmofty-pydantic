@@ -2,10 +2,7 @@ from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
 
-import os
-
-from api.qa_dict import QA, get_qa_dict
-
+from api.services.qa_dict import QA, get_qas
 from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
@@ -27,8 +24,6 @@ deepseek_model = OpenAIModel(
 
 embedding_model = settings.EMBEDDING_MODEL
 
-url = settings.SUPABASE_VECTOR_URL
-key = settings.SUPABASE_VECTOR_KEY
 
 from api.db import get_db
 
@@ -37,7 +32,7 @@ supabase_client = get_db()
 
 ISLAMQA_BASE_URL = "https://islamqa.info/ar/answers"
 
-qa_dict = get_qa_dict()
+# qa_dict = get_qa_dict()
 
 
 @dataclass
@@ -61,7 +56,7 @@ system_prompt = """
    - If the tool return an empty list, then there are no similar questions. Move on to the next step.
 
 3. **Generate Your Answer:**
-   - If the `generate_context` tool returned an empty list, answer using your knowledge but add a disclaimer that no similar fatwas were found and this is your best guess.
+   - If the `generate_context` tool returned an empty list, answer using your knowledge but add a disclaimer in the prompt's language that no similar fatwas were found and this is your best guess.
    - Otherwise, Base your response entirely on the fetched context, without relying on any prior knowledge.
 
 4. **Output Requirements:**
@@ -180,7 +175,7 @@ def generate_context(ctx: RunContext[PydanticAIDeps], user_query: str) -> list[Q
         questions_ids = [obj["question_id"] for obj in response.data]
 
         # return the list of questions and answers from the qa_dict
-        similar_qas = [qa_dict.get(id) for id in questions_ids if id in qa_dict]
+        similar_qas = get_qas(questions_ids)
         # print(similar_qas)
         return similar_qas
 

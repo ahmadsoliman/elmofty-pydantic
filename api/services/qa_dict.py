@@ -79,3 +79,17 @@ def get_qa_dict():
             for qa in qa_data
         }
     return _qa_dict
+
+
+def get_qas(ids):
+    try:
+        supabase_client = supabase.create_client(url, key)
+
+        response = supabase_client.table("qas").select("*").in_("id", ids).execute()
+        if not response.data:
+            return []
+
+        return [QA(**qa) for qa in response.data]
+    except Exception as e:
+        logger.error(f"Error loading QAs from supabase: {e}")
+        return []

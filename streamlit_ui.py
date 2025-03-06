@@ -12,7 +12,7 @@ from arabic_support import support_arabic_text
 # Support Arabic text alignment in all components
 support_arabic_text(components=["input", "markdown", "textinput"])
 
-from api.qa_dict import QA, get_qa_dict
+from api.services.qa_dict import QA, get_qa_dict
 
 qa_dict = get_qa_dict()
 
