@@ -111,7 +111,7 @@ async def telegram():
     try:
         # Validate request security
         if settings.FLASK_ENV != "testing":
-            validate_telegram_ip()
+            # validate_telegram_ip()
             validate_telegram_secret()
 
         # Process request
