@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     REDIS_USER: str = Field(default="default")
     REDIS_PASSWORD: str = Field()
     GOOGLE_APPLICATION_CREDENTIALS: str = Field(default="gcp-service-account.json")
-    ANDROID_PACKAGE_NAME: str = Field(default="com.doc.IslamQA_AI")
+    ANDROID_PACKAGE_NAME: str = Field(default="com.anonymous.IslamQA")
 
     class Config:
         env_file = ".env"
