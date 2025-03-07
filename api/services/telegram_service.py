@@ -32,17 +32,13 @@ class TelegramService:
         reply_loading_response = reply_loading(chat_id)
         loading_message = reply_loading_response.get("result", {})
 
-        result = None
         try:
             result = await run_agent(user_input)
-        except Exception as e:
-            pass
-
-        await delete_loading_message(chat_id, loading_message.get("message_id", -1))
-
-        if result:
+            delete_loading_message(chat_id, loading_message.get("message_id", -1))
             send_reply(chat_id, result["telegram_mesasge"])
-        else:
-            reply_error(chat_id)
 
-        return result
+            return result
+        except Exception as e:
+            delete_loading_message(chat_id, loading_message.get("message_id", -1))
+            reply_error(chat_id)
+            raise e

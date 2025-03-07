@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     REDIS_HOST: str = Field(default="127.0.0.1")
     REDIS_PORT: str = Field(default="6379")
     REDIS_USER: str = Field(default="default")
-    REDIS_PASSWORD: str = Field()
+    REDIS_PASSWORD: str = Field(...)
     GOOGLE_APPLICATION_CREDENTIALS: str = Field(default="gcp-service-account.json")
     ANDROID_PACKAGE_NAME: str = Field(default="com.anonymous.IslamQA")
 
