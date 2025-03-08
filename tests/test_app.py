@@ -6,7 +6,10 @@ import fakeredis
 import redis
 
 from main import app
-from api.pydantic_agent import pydantic_islam_agent, RAGToolTracker, ValidatedResponse
+from api.agents.response_agent import (
+    pydantic_islam_agent,
+    ValidatedResponse,
+)
 
 client = app.test_client()
 
@@ -28,7 +31,6 @@ def mock_redis(monkeypatch):
 def test_chat_endpoint_valid_request():
     # Test valid request
     with patch.object(pydantic_islam_agent, "run") as mock_run:
-        RAGToolTracker.set_used()
         mock_run.return_value = MagicMock(
             data=ValidatedResponse(
                 response="test response", source_questions_ids=["1", "2"]
@@ -105,7 +107,6 @@ def test_telegram_endpoint_valid_request(mock_requests):
     mock_requests.return_value = mock_response
 
     with patch.object(pydantic_islam_agent, "run") as mock_run:
-        RAGToolTracker.set_used()
         mock_run.return_value = MagicMock(
             data=ValidatedResponse(
                 response="test response", source_questions_ids=["1", "2"]

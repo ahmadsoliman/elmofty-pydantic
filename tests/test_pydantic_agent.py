@@ -1,10 +1,12 @@
 import pytest
-from api.pydantic_agent import (
-    get_embedding,
-    run_agent,
-    RAGToolTracker,
+from api.agents.embedding import get_embedding
+from api.agents.orchesterator import (
+    process_user_input,
+)
+from api.agents.response_agent import (
     ValidatedResponse,
     pydantic_islam_agent,
+    run_response_agent,
 )
 from unittest.mock import patch, MagicMock
 
@@ -23,38 +25,36 @@ def mock_redis():
 
 
 @patch(
-    "api.pydantic_agent.cohere.ClientV2.embed",
+    "api.agents.embedding.cohere.ClientV2.embed",
     return_value=MagicMock(embeddings=MagicMock(float=[[0.1] * 1024])),
 )
 def test_get_embedding_success(mock_embed):
     # Test successful embedding generation
 
-    result = get_embedding("test query")
+    result = get_embedding(["test query"])[0]
     assert len(result) == 1024
     assert all(x == 0.1 for x in result)
 
 
-@patch("api.pydantic_agent.cohere.ClientV2.embed", side_effect=Exception("API error"))
+@patch("api.agents.embedding.cohere.ClientV2.embed", side_effect=Exception("API error"))
 def test_get_embedding_failure(mock_embed):
     # Test embedding generation failure
 
-    result = get_embedding("test query")
-    assert len(result) == 1024
-    assert all(x == 0 for x in result)
+    result = get_embedding(["test query"])
+    assert len(result) == 0
 
 
 @pytest.mark.anyio
 async def test_run_agent_success():
     # Test successful agent run
     with patch.object(pydantic_islam_agent, "run") as mock_run:
-        RAGToolTracker.set_used()
         mock_run.return_value = MagicMock(
             data=ValidatedResponse(
                 response="test response", source_questions_ids=["1", "2"]
             )
         )
 
-        result = await run_agent("test query")
+        result = await process_user_input("test query")
         assert "response" in result
         assert "source_questions_ids" in result
         assert "message" in result
@@ -67,23 +67,12 @@ async def test_run_agent_validation_error():
     with patch.object(pydantic_islam_agent, "run") as mock_run:
         mock_run.side_effect = ValueError("Validation error")
         with pytest.raises(ValueError):
-            await run_agent("test query")
-
-
-def test_rag_tool_tracker():
-    # Test RAG tool tracker functionality
-    RAGToolTracker.reset()
-    assert RAGToolTracker.check() is False
-    RAGToolTracker.set_used()
-    assert RAGToolTracker.check() is True
-    RAGToolTracker.reset()
-    assert RAGToolTracker.check() is False
+            await run_response_agent("test query", "", "english", [])
 
 
 def test_validated_response_model():
     # Test ValidatedResponse model
     data = {"response": "test response", "source_questions_ids": ["1", "2"]}
-    RAGToolTracker.set_used()
     response = ValidatedResponse(**data)
     assert response.response == "test response"
     assert response.source_questions_ids == ["1", "2"]
