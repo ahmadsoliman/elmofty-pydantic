@@ -1,8 +1,6 @@
-from typing import Dict, Any
-from api.pydantic_agent import run_agent
+from api.agents.orchesterator import process_user_input
 from api.schemas.validation import TelegramRequest
 
-from api.cache.cache_decorator import cache_response
 from api.telegram_bot import (
     reply_loading,
     reply_start,
@@ -13,8 +11,6 @@ from api.telegram_bot import (
 
 
 class TelegramService:
-    @staticmethod
-    @cache_response(ttl=3600)  # Cache for 1 hour
     async def process_telegram_request(data: TelegramRequest):
         message = data.message
         user_input = message.get("text", "")
@@ -33,7 +29,7 @@ class TelegramService:
         loading_message = reply_loading_response.get("result", {})
 
         try:
-            result = await run_agent(user_input)
+            result = await process_user_input(user_input)
             delete_loading_message(chat_id, loading_message.get("message_id", -1))
             send_reply(chat_id, result["telegram_mesasge"])
 

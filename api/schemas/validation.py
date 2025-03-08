@@ -1,6 +1,17 @@
 from pydantic import BaseModel, Field, field_validator, ValidationError
-from typing import Optional
+from typing import Optional, Literal
 import bleach
+
+
+class ChatMessage(BaseModel):
+    by: Literal["user"] | Literal["bot"] = Field(...)
+    message: str = Field(..., min_length=1, max_length=10000)
+
+    @field_validator("*")
+    def sanitize_strings(cls, value):
+        if isinstance(value, str):
+            return bleach.clean(value, strip=True)
+        return value
 
 
 class ChatRequest(BaseModel):
@@ -10,6 +21,7 @@ class ChatRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=100)
     message_id: str = Field(..., min_length=1, max_length=100)
     chat_id: str = Field(..., min_length=1, max_length=100)
+    chat_history: Optional[list[ChatMessage]] = Field([], max_length=10)
 
     @field_validator("*")
     def sanitize_strings(cls, value):
@@ -50,6 +62,7 @@ class HealthCheckResponse(BaseModel):
 
 from uuid import UUID
 
+
 class NonceRequest(BaseModel):
     length: Optional[int] = Field(None, ge=16, le=128)
     prefix: Optional[str] = Field(None, max_length=32)
@@ -59,4 +72,3 @@ class NonceRequest(BaseModel):
         if value:
             return bleach.clean(value, strip=True)
         return value
-

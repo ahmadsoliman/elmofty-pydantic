@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from pydantic import ValidationError
 from uuid import uuid4
-
+import asyncio
 
 from api.middleware.error_handler import register_error_handlers
 from api.services.chat_service import ChatService
@@ -12,6 +12,7 @@ from api.cache.redis_manager import get_redis
 from api.middleware.play_integrity import verify_online
 from api.logging_config import configure_logging
 from api.middleware.request_logger import log_requests
+from api.db import get_db
 from config import settings
 
 from api.schemas.validation import (
@@ -31,6 +32,8 @@ register_error_handlers(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 configure_logging()
 log_requests(app)
+
+asyncio.run(get_db())
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -100,7 +103,7 @@ async def generate_nonce():
 
 
 from api.middleware.telegram_security import (
-    validate_telegram_ip,
+    # validate_telegram_ip,
     validate_telegram_secret,
 )
 

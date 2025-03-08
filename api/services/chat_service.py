@@ -1,13 +1,21 @@
-from typing import Dict, Any
-from api.pydantic_agent import run_agent
+from api.agents.orchesterator import process_user_input
+from pydantic_ai.messages import ModelResponse, ModelRequest, TextPart, UserPromptPart
 from api.schemas.validation import ChatRequest
 
-from api.cache.cache_decorator import cache_response
+# from api.cache.cache_decorator import cache_response
 
 
 class ChatService:
     @staticmethod
-    @cache_response(ttl=3600)  # Cache for 1 hour
+    # @cache_response(ttl=3600, key_of_arg=ChatRequest.hash)  # Cache for 1 hour
     async def process_chat_request(data: ChatRequest):
         user_input = data.message
-        return await run_agent(user_input)
+
+        def init_msg(msg):
+            if msg.by == "bot":
+                return ModelResponse(parts=[TextPart(content=msg.message)])
+            else:
+                return ModelRequest(parts=[UserPromptPart(content=msg.message)])
+
+        chat_history = [init_msg(msg) for msg in data.chat_history]
+        return await process_user_input(user_input, chat_history)
