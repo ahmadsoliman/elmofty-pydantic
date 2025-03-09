@@ -11,10 +11,9 @@ class Database:
             url = settings.SUPABASE_VECTOR_URL
             key = settings.SUPABASE_VECTOR_KEY
             options = SyncClientOptions(
-                postgrest_client_timeout=10,
-                storage_client_timeout=10,
-                auto_refresh_token=False,
-                persist_session=False,
+                postgrest_client_timeout=20,
+                storage_client_timeout=20,
+                function_client_timeout=20,
             )
             try:
                 cls._instance = supabase.create_client(url, key, options)
