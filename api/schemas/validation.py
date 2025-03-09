@@ -1,11 +1,14 @@
 from pydantic import BaseModel, Field, field_validator, ValidationError
 from typing import Optional, Literal
 import bleach
+from datetime import datetime
 
 
 class ChatMessage(BaseModel):
-    by: Literal["user"] | Literal["bot"] = Field(...)
-    message: str = Field(..., min_length=1, max_length=10000)
+    id: Optional[str] = Field(...)
+    text: str = Field(..., min_length=1, max_length=10000)
+    sender: Literal["user"] | Literal["bot"] = Field(...)
+    timestamp: Optional[datetime] = Field(...)
 
     @field_validator("*")
     def sanitize_strings(cls, value):

@@ -1,5 +1,5 @@
 import supabase
-from supabase.lib.client_options import AsyncClientOptions
+from supabase.lib.client_options import SyncClientOptions
 from config import settings
 
 
@@ -10,7 +10,7 @@ class Database:
         if cls._instance is None:
             url = settings.SUPABASE_VECTOR_URL
             key = settings.SUPABASE_VECTOR_KEY
-            options = AsyncClientOptions(
+            options = SyncClientOptions(
                 postgrest_client_timeout=10,
                 storage_client_timeout=10,
                 auto_refresh_token=False,
