@@ -1,7 +1,9 @@
 import requests
 import os
+import structlog
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+logger = structlog.get_logger()
 
 
 def send_reply(chat_id, text):
@@ -13,7 +15,7 @@ def send_reply(chat_id, text):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as error:
-        print(f"Error sending reply message: {error}")
+        logger.error(f"Error sending reply message: {error}")
         return {"ok": False, "error": str(error)}
 
 
@@ -48,5 +50,5 @@ def delete_loading_message(chat_id, message_id):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as error:
-        print(f"Error deleting message: {error}")
+        logger.error(f"Error deleting message: {error}")
         return {"ok": False, "error": str(error)}

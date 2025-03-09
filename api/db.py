@@ -6,7 +6,7 @@ from config import settings
 class Database:
     _instance = None
 
-    async def __new__(cls):
+    def __new__(cls):
         if cls._instance is None:
             url = settings.SUPABASE_VECTOR_URL
             key = settings.SUPABASE_VECTOR_KEY
@@ -17,11 +17,11 @@ class Database:
                 persist_session=False,
             )
             try:
-                cls._instance = await supabase.create_async_client(url, key, options)
+                cls._instance = supabase.create_client(url, key, options)
             except:
                 pass
         return cls._instance
 
 
-async def get_db():
-    return await Database()
+def get_db():
+    return Database()

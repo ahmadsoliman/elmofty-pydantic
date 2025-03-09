@@ -24,9 +24,7 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: str = Field(default="gcp-service-account.json")
     ANDROID_PACKAGE_NAME: str = Field(default="com.anonymous.IslamQA")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
 settings = Settings()

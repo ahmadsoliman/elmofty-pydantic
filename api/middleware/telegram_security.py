@@ -60,7 +60,6 @@ def validate_telegram_ip():
     telegram_ranges = load_telegram_ip_ranges()
 
     if not any(client_ip in network for network in telegram_ranges):
-        print("error", client_ip)
         raise APIError("Request not from Telegram servers", status_code=403)
 
 

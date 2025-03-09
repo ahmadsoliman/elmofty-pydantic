@@ -47,6 +47,5 @@ def verify_online(integrity_token):
         or settings.FLASK_ENV == "development"
     )
 
-    print("integrity verdicts: " + str(verdicts))
-    logger.debug("integrity verdicts: " + str(verdicts))
+    logger.info("integrity verdicts: " + str(verdicts))
     return all(verdicts)

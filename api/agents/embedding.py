@@ -1,7 +1,8 @@
 import structlog
 import cohere
 from typing import List
-import asyncio
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 from config import settings
 from api.db import get_db
@@ -48,10 +49,10 @@ async def get_similar_questions(queries: str) -> list[QA]:
 
         # Search supabase vector database for similar questions
 
-        db = await get_db()
+        db = get_db()
 
-        async def execute_rpc(embedding):
-            return await db.rpc(
+        def execute_rpc(embedding):
+            return db.rpc(
                 "match_documents",
                 {
                     "query_embedding": embedding,
@@ -60,9 +61,17 @@ async def get_similar_questions(queries: str) -> list[QA]:
                 },
             ).execute()
 
-        responses = await asyncio.gather(
-            *[execute_rpc(embedding) for embedding in embeddings]
-        )
+        responses = []
+        with ThreadPoolExecutor() as executor:
+            # Submit all RPC calls to be executed concurrently in threads
+            futures = [
+                executor.submit(execute_rpc, embedding) for embedding in embeddings
+            ]
+            for future in as_completed(futures):
+                try:
+                    responses.append(future.result())
+                except Exception as rpc_error:
+                    logger.error(f"RPC error: {rpc_error}")
 
         question_similarity = dict()
         for response in responses:
