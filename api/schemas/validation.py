@@ -5,10 +5,10 @@ from datetime import datetime
 
 
 class ChatMessage(BaseModel):
-    id: Optional[str] = Field(...)
+    id: Optional[str] = Field(None, max_length=100)
     text: str = Field(..., min_length=1, max_length=10000)
     sender: Literal["user"] | Literal["bot"] = Field(...)
-    timestamp: Optional[datetime] = Field(...)
+    timestamp: Optional[datetime] = Field(datetime.now())
 
     @field_validator("*")
     def sanitize_strings(cls, value):

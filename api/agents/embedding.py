@@ -3,9 +3,8 @@ import cohere
 from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
 from config import settings
-from api.db import get_db
+from api.db import match_documents, MatchResult
 from api.services.qa_dict import QA, get_qas
 
 NO_QUESTIONS_FOUND = "No similar questions were found."
@@ -48,24 +47,11 @@ async def get_similar_questions(queries: str) -> list[QA]:
         embeddings = get_embedding(queries)
 
         # Search supabase vector database for similar questions
-
-        db = get_db()
-
-        def execute_rpc(embedding):
-            return db.rpc(
-                "match_documents",
-                {
-                    "query_embedding": embedding,
-                    "match_count": settings.VECTOR_MATCH_COUNT,
-                    "match_threshold": settings.VECTOR_MATCH_THRESHOLD,
-                },
-            ).execute()
-
-        responses = []
+        responses: List[List[MatchResult]] = []
         with ThreadPoolExecutor() as executor:
             # Submit all RPC calls to be executed concurrently in threads
             futures = [
-                executor.submit(execute_rpc, embedding) for embedding in embeddings
+                executor.submit(match_documents, embedding) for embedding in embeddings
             ]
             for future in as_completed(futures):
                 try:
@@ -75,13 +61,11 @@ async def get_similar_questions(queries: str) -> list[QA]:
 
         question_similarity = dict()
         for response in responses:
-            if response.data and isinstance(response.data, List):
-                for obj in response.data:
-                    id = obj["question_id"]
-                    similarity = obj["similarity"]
-                    question_similarity[id] = max(
-                        question_similarity.get(id, float("-inf")), similarity
-                    )
+            for obj in response:
+                question_similarity[obj.question_id] = max(
+                    question_similarity.get(obj.question_id, float("-inf")),
+                    obj.similarity,
+                )
 
         # Convert dict to list of tuples sorted by similarity score in descending order
         sorted_questions = sorted(
