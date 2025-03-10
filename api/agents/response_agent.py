@@ -69,7 +69,7 @@ async def run_response_agent(
     while maintaining the entire conversation in `st.session_state.messages`.
     """
     try:
-        prompt = f"User question: {user_input}\n\nResources:{context}\n\nTarget language: {target_language}"
+        prompt = f"#User question:\n{user_input}\n\n#Resources:\n{context}\n#Target language:\n{target_language}"
 
         result = await pydantic_islam_agent.run(
             prompt,

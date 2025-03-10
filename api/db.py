@@ -64,5 +64,45 @@ def match_documents(embedding):
             )
             return [MatchResult(obj[0][1], obj[0][2]) for obj in result.all()]
     except Exception as e:
-        logger.error(f"Error matching embedding: {e}")
+        logger.error(f"Error matching embedding on Cloud SQL: {e}")
+        return []
+
+
+class QA:
+    id: str
+    question: str
+    answer: str
+
+    def __init__(self, id: str, question: str, answer: str):
+        self.id = id
+        self.question = question
+        self.answer = answer
+
+
+from sqlalchemy import Table, Column, String, MetaData, select
+
+metadata = MetaData()
+
+qas = Table(
+    "qas",
+    metadata,
+    Column("id", String, primary_key=True),
+    Column("question", String),
+    Column("answer", String),
+)
+
+
+def get_qas(ids):
+    try:
+        query = select(qas).where(qas.c.id.in_(ids))
+
+        # Execute the query
+        with get_db().connect() as connection:
+            result = connection.execute(query)
+            data = result.mappings().all()
+
+        return [QA(**obj) for obj in data]
+
+    except Exception as e:
+        logger.error(f"Error loading QAs from Cloud SQL: {e}")
         return []

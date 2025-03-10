@@ -4,8 +4,7 @@ from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from config import settings
-from api.db import match_documents, MatchResult
-from api.services.qa_dict import QA, get_qas
+from api.db import match_documents, MatchResult, get_qas, QA
 
 NO_QUESTIONS_FOUND = "No similar questions were found."
 

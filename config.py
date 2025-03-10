@@ -5,8 +5,6 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     FLASK_ENV: str = Field(default="development")
     PORT: int = Field(default=8080)
-    SUPABASE_QA_URL: str = Field(default="https://suujktweayfbbuwmcxai.supabase.co")
-    SUPABASE_QA_KEY: str = Field(...)
     POSTGRES_INSTANCE_CONNECTION: str = Field(...)
     POSTGRES_DB_PASSWORD: str = Field(...)
     COHERE_API_KEY: str = Field(...)
