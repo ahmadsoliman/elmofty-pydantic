@@ -45,7 +45,7 @@ async def get_similar_questions(queries: str) -> list[QA]:
         # Get the embedding for the query
         embeddings = get_embedding(queries)
 
-        # Search supabase vector database for similar questions
+        # Search db vector database for similar questions
         responses: List[List[MatchResult]] = []
         with ThreadPoolExecutor() as executor:
             # Submit all RPC calls to be executed concurrently in threads

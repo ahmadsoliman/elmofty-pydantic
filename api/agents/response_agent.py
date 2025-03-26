@@ -33,7 +33,7 @@ system_prompt = f"""
 - Otherwise, Base your response entirely on the Resources, without relying on any prior knowledge.
 
 **Output Requirements:**
-- Provide your answer to the user question translated into the target language.
+- Provide your answer to the user question translated into the target language without question IDs.
 - Include a list of the question IDs of only the subset of questions you used to infer the answer (if any).
 """
 
@@ -42,7 +42,7 @@ system_prompt = f"""
 class ValidatedResponse(BaseModel):
     response: str = Field(
         ...,
-        description="The final response to the user translated into the target language.",
+        description="The final response to the user translated into the target language without question IDs.",
     )
     source_questions_ids: List[str] = Field(
         ...,

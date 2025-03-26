@@ -126,7 +126,7 @@ async def health_check():
     return {
         "status": "ok",
         "database": True,
-        "external_services": {"supabase": True, "cohere": True},
+        "external_services": {"gcp": True, "cohere": True},
     }
 
 
