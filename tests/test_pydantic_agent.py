@@ -8,6 +8,10 @@ from api.agents.response_agent import (
     pydantic_islam_agent,
     run_response_agent,
 )
+from api.agents.translation_agent import (
+    TranslationValidatedResponse,
+    translation_agent,
+)
 from unittest.mock import patch, MagicMock
 
 
@@ -47,18 +51,30 @@ def test_get_embedding_failure(mock_embed):
 @pytest.mark.anyio
 async def test_run_agent_success():
     # Test successful agent run
-    with patch.object(pydantic_islam_agent, "run") as mock_run:
-        mock_run.return_value = MagicMock(
-            data=ValidatedResponse(
-                response="test response", source_questions_ids=["1", "2"]
+    with patch.object(translation_agent, "run") as mock_translation_run:
+        mock_translation_run.return_value = MagicMock(
+            data=TranslationValidatedResponse(
+                rewritten=["test query 1", "test query 2", "test query 3"],
+                isArabic=False,
+                language="english",
             )
         )
 
-        result = await process_user_input("test query")
-        assert "response" in result
-        assert "source_questions_ids" in result
-        assert "message" in result
-        assert "telegram_mesasge" in result
+        with patch.object(pydantic_islam_agent, "run") as mock_response_run:
+            mock_response_run.return_value = MagicMock(
+                data=ValidatedResponse(
+                    response="test response", source_questions_ids=["1", "2"]
+                )
+            )
+
+            with patch("api.agents.embedding.generate_context") as mock_context:
+                mock_context.return_value = "test context"
+
+                result = await process_user_input("test query")
+                assert "response" in result
+                assert "source_questions_ids" in result
+                assert "message" in result
+                assert "telegram_mesasge" in result
 
 
 @pytest.mark.anyio

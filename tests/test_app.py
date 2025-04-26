@@ -28,29 +28,30 @@ def mock_redis(monkeypatch):
     monkeypatch.setattr(redis, "Redis", lambda *args, **kwargs: fake_redis)
 
 
-def test_chat_endpoint_valid_request():
+@patch("api.services.chat_service.process_user_input")
+def test_chat_endpoint_valid_request(mock_process):
     # Test valid request
-    with patch.object(pydantic_islam_agent, "run") as mock_run:
-        mock_run.return_value = MagicMock(
-            data=ValidatedResponse(
-                response="test response", source_questions_ids=["1", "2"]
-            )
-        )
+    mock_process.return_value = {
+        "response": "test response",
+        "source_questions_ids": ["1", "2"],
+        "message": "test response\n\nReferences:\n[islamqa.info/ar/answers/1](islamqa.info/ar/answers/1)\n[islamqa.info/ar/answers/2](islamqa.info/ar/answers/2)",
+        "telegram_mesasge": "test response\n\nReferences:\nislamqa.info/ar/answers/1\nislamqa.info/ar/answers/2",
+    }
 
-        payload = {
-            "message": "Why do we have to pray?",
-            "first_name": "Ahmad",
-            "last_name": "Soliman",
-            "user_id": "412",
-            "message_id": "124",
-            "chat_id": "123",
-        }
-        response = client.post("/api/chat", json=payload)
-        assert response.status_code == 200
-        response_json = response.get_json()
-        assert "message" in response_json
-        assert "response" in response_json
-        assert "source_questions_ids" in response_json
+    payload = {
+        "message": "Why do we have to pray?",
+        "first_name": "Ahmad",
+        "last_name": "Soliman",
+        "user_id": "412",
+        "message_id": "124",
+        "chat_id": "123",
+    }
+    response = client.post("/api/chat", json=payload)
+    assert response.status_code == 200
+    response_json = response.get_json()
+    assert "message" in response_json
+    assert "response" in response_json
+    assert "source_questions_ids" in response_json
 
 
 def test_chat_endpoint_missing_fields():
@@ -98,32 +99,32 @@ def test_telegram_endpoint_invalid_structure():
 
 
 @patch("api.telegram_bot.requests.post")
-def test_telegram_endpoint_valid_request(mock_requests):
+@patch("api.services.telegram_service.process_user_input")
+def test_telegram_endpoint_valid_request(mock_process, mock_requests):
     # Test valid request
+    mock_process.return_value = {
+        "response": "test response",
+        "source_questions_ids": ["1", "2"],
+        "message": "test response\n\nReferences:\n[islamqa.info/ar/answers/1](islamqa.info/ar/answers/1)\n[islamqa.info/ar/answers/2](islamqa.info/ar/answers/2)",
+        "telegram_mesasge": "test response\n\nReferences:\nislamqa.info/ar/answers/1\nislamqa.info/ar/answers/2",
+    }
 
     # This mock is only for reply_loading request
     mock_response = MagicMock()
     mock_response.json.return_value = MagicMock(result=MagicMock(message_id="123"))
     mock_requests.return_value = mock_response
 
-    with patch.object(pydantic_islam_agent, "run") as mock_run:
-        mock_run.return_value = MagicMock(
-            data=ValidatedResponse(
-                response="test response", source_questions_ids=["1", "2"]
-            )
-        )
-
-        payload = {
-            "message": {
-                "text": "Why do we pray?",
-                "chat": {"id": "123"},
-                "from": {"is_bot": False},
-            }
+    payload = {
+        "message": {
+            "text": "Why do we pray?",
+            "chat": {"id": "123"},
+            "from": {"is_bot": False},
         }
-        response = client.post("/api/telegram", json=payload)
-        assert response.status_code == 200
-        response_json = response.get_json()
-        assert "telegram_mesasge" in response_json
+    }
+    response = client.post("/api/telegram", json=payload)
+    assert response.status_code == 200
+    response_json = response.get_json()
+    assert "telegram_mesasge" in response_json
 
 
 def test_report_endpoint():

@@ -1,7 +1,6 @@
 from __future__ import annotations as _annotations
 import structlog
 
-from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.messages import ModelMessage
 from config import settings
 
@@ -11,13 +10,6 @@ from api.agents.embedding import generate_context
 import time
 
 logger = structlog.get_logger()
-
-deepseek_model_name = settings.DEEPSEEK_MODEL
-deepseek_model = OpenAIModel(
-    deepseek_model_name,
-    base_url="https://api.deepseek.com",
-    api_key=settings.DEEPSEEK_API_KEY,
-)
 
 ISLAMQA_BASE_URL = "https://islamqa.info/ar/answers"
 

@@ -4,21 +4,14 @@ import structlog
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.usage import UsageLimits
 from pydantic_ai.messages import ModelMessage
 from config import settings
 
 from api.agents.embedding import NO_QUESTIONS_FOUND
+from api.models.llm import openrouter_model
 
 logger = structlog.get_logger()
-
-deepseek_model_name = settings.DEEPSEEK_MODEL
-deepseek_model = OpenAIModel(
-    deepseek_model_name,
-    base_url="https://api.deepseek.com",
-    api_key=settings.DEEPSEEK_API_KEY,
-)
 
 # , unless the prompt is a follow up question on the last prompt, then you can skip RAG.
 system_prompt = f"""
@@ -51,7 +44,7 @@ class ValidatedResponse(BaseModel):
 
 
 pydantic_islam_agent = Agent(
-    deepseek_model,
+    openrouter_model,
     system_prompt=system_prompt,
     retries=2,
     result_type=ValidatedResponse,
